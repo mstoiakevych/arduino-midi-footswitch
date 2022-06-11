@@ -14,11 +14,10 @@ private:
     byte interval;
     byte lightPin;
     bool isSwitched = false;
-
+    SwitchMode switchMode = SwitchMode::Switch;
     unsigned long lastTimestamp;
     unsigned long currentTimestamp;
 public:
-    SwitchMode switchMode;
 
     MidiButton() = delete;
 
@@ -31,26 +30,21 @@ public:
         this->lightPin = lightPin;
         pinMode(lightPin, OUTPUT);
 
-        this->switchMode = SwitchMode::Switch;
-        this->lastTimestamp = millis();
+        lastTimestamp = millis();
     }
 
     void setup() {
-        this->bounce.attach(this->pin, INPUT_PULLUP);
-        this->bounce.interval(this->interval);
-        this->bounce.setPressedState(LOW); // because of INPUT_PULLUP
-    }
-
-    void update() {
-        this->bounce.update();
+        bounce.attach(pin, INPUT_PULLUP);
+        bounce.interval(interval);
+        bounce.setPressedState(LOW); // because of INPUT_PULLUP
     }
 
     bool hasButtonJustPressed() {
-        return this->bounce.pressed();
+        return bounce.pressed();
     }
 
     bool hasButtonJustReleased() {
-        return this->bounce.released();
+        return bounce.released();
     }
 
     bool isPressed() const {
@@ -61,26 +55,31 @@ public:
         isSwitched = !isSwitched;
 
         if (isSwitched) {
-            MIDI_::enableControlChange(channel, this->control);
-            if (switchLight) digitalWrite(this->lightPin, HIGH);
+            MIDI_::enableControlChange(channel, control);
+            if (switchLight) digitalWrite(lightPin, HIGH);
         } else {
-            MIDI_::disableControlChange(channel, this->control);
-            if (switchLight) digitalWrite(this->lightPin, LOW);
+            MIDI_::disableControlChange(channel, control);
+            if (switchLight) digitalWrite(lightPin, LOW);
         }
     }
 
     void enable(bool enableLight = true) const {
-        MIDI_::enableControlChange(channel, this->control);
-        if (enableLight) digitalWrite(this->lightPin, HIGH);
+        MIDI_::enableControlChange(channel, control);
+        if (enableLight) digitalWrite(lightPin, HIGH);
     }
 
     void disable(bool disableLight = true) const {
-        MIDI_::disableControlChange(channel, this->control);
-        if (disableLight) digitalWrite(this->lightPin, LOW);
+        MIDI_::disableControlChange(channel, control);
+        if (disableLight) digitalWrite(lightPin, LOW);
+    }
+
+    void resetSwitched() {
+        if (isSwitched) disable();
+        isSwitched = false;
     }
 
     void handleClick() {
-        this->bounce.update();
+        bounce.update();
 
         if (hasButtonJustPressed()) {
 
@@ -99,11 +98,11 @@ public:
                 case Switch:
                     if (currentTimestamp - lastTimestamp < 350) {
                         switchMode = Momentary;
-                        this->resetSwitched();
+                        resetSwitched();
                     }
                     break;
                 case Momentary:
-                    this->disable();
+                    disable();
                     if (currentTimestamp - lastTimestamp < 350) {
                         switchMode = Switch;
                     }
@@ -112,10 +111,5 @@ public:
         }
 
         lastTimestamp = currentTimestamp;
-    }
-
-    void resetSwitched() {
-        if (isSwitched) this->disable();
-        isSwitched = false;
     }
 };

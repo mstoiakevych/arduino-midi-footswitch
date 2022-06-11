@@ -20,35 +20,7 @@ void setup() {
 }
 
 void loop() {
-//    for (auto & button : buttons) button.update();
     for (auto & button : buttons) button.handleClick();
-//    for (auto & button : buttons) {
-//        if (button.hasButtonJustPressed()) {
-//            currentTimestamp = millis();
-//
-//            switch (mode) {
-//                case Switch:
-//                    button.toggle();
-//
-//                    break;
-//                case Momentary:
-//                    button.enable();
-//                    break;
-//            }
-//
-//            lastTimestamp = currentTimestamp;
-//        }
-//
-//        if (button.hasButtonJustReleased()) {
-//            switch (mode) {
-//                case Switch:
-//                    break;
-//                case Momentary:
-//                    button.disable();
-//                    break;
-//            }
-//        }
-//    }
 }
 
 /*
