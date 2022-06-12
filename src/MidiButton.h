@@ -10,22 +10,21 @@ private:
     Bounce2::Button bounce;
     byte pin;
     byte channel;
-    byte control;
     byte interval;
     byte lightPin;
     bool isSwitched = false;
     SwitchMode switchMode = SwitchMode::Switch;
+
     unsigned long lastTimestamp;
     unsigned long currentTimestamp;
 public:
 
     MidiButton() = delete;
 
-    MidiButton(byte pin, byte channel, byte control, byte interval, byte lightPin) {
+    MidiButton(byte pin, byte channel, byte interval, byte lightPin) {
         this->bounce = Bounce2::Button();
         this->pin = pin;
         this->channel = channel;
-        this->control = control;
         this->interval = interval;
         this->lightPin = lightPin;
         pinMode(lightPin, OUTPUT);
@@ -37,6 +36,10 @@ public:
         bounce.attach(pin, INPUT_PULLUP);
         bounce.interval(interval);
         bounce.setPressedState(LOW); // because of INPUT_PULLUP
+    }
+
+    void update() {
+        this->bounce.update();
     }
 
     bool hasButtonJustPressed() {
@@ -51,7 +54,7 @@ public:
         return bounce.isPressed();
     }
 
-    void toggle(bool switchLight = true) {
+    void toggle(byte control, bool switchLight = true) {
         isSwitched = !isSwitched;
 
         if (isSwitched) {
@@ -63,51 +66,48 @@ public:
         }
     }
 
-    void enable(bool enableLight = true) const {
+    void enable(byte control, bool enableLight = true) const {
         MIDI_::enableControlChange(channel, control);
         if (enableLight) digitalWrite(lightPin, HIGH);
     }
 
-    void disable(bool disableLight = true) const {
+    void disable(byte control, bool disableLight = true) const {
         MIDI_::disableControlChange(channel, control);
         if (disableLight) digitalWrite(lightPin, LOW);
     }
 
-    void resetSwitched() {
-        if (isSwitched) disable();
+    void resetSwitched(byte control) {
+        if (isSwitched) disable(control);
         isSwitched = false;
     }
 
-    void handleClick() {
-        bounce.update();
+    void handlePress(byte control) {
+        switch (switchMode) {
+            case Switch:
+                toggle(control);
+                break;
+            case Momentary:
+                enable(control);
+                break;
+        }
+    }
 
-        if (hasButtonJustPressed()) {
+    void handleRelease(byte control) {
+        currentTimestamp = millis();
 
-            switch (switchMode) {
-                case Switch:
-                    toggle();
-                    break;
-                case Momentary:
-                    enable();
-                    break;
-            }
-        } else if (hasButtonJustReleased()) {
-            currentTimestamp = millis();
-
-            switch (switchMode) {
-                case Switch:
-                    if (currentTimestamp - lastTimestamp < 350) {
-                        switchMode = Momentary;
-                        resetSwitched();
-                    }
-                    break;
-                case Momentary:
-                    disable();
-                    if (currentTimestamp - lastTimestamp < 350) {
-                        switchMode = Switch;
-                    }
-                    break;
-            }
+        switch (switchMode) {
+            case Switch:
+                if (currentTimestamp - lastTimestamp < 350) {
+                    switchMode = Momentary;
+                    resetSwitched(control);
+                }
+                break;
+            case Momentary:
+                disable(control);
+                if (currentTimestamp - lastTimestamp < 350) {
+                    switchMode = Switch;
+                }
+                break;
         }
 
         lastTimestamp = currentTimestamp;

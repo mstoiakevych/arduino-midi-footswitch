@@ -2,59 +2,53 @@
 #include "MidiButton.h"
 #include <Bounce2.h>
 
-#define LED 16
-#define BTN1 10
-#define BTN2 15
-#define INTERVAL 50
+// Button 1
+#define LED1_PIN 16
+#define BTN1_PIN 10
+
+// Button 2
+#define BTN2_PIN 15
+
+// Common settings
+#define DEBOUNCE_INTERVAL 50
 #define CHANNEL 15
 #define BUTTONS_NUM 2
+#define PRESETS_NUM 4
 
-MidiButton buttons[BUTTONS_NUM] = {
-        MidiButton(BTN1, CHANNEL, 80, INTERVAL, LED),
-        MidiButton(BTN2, CHANNEL, 81, INTERVAL, 5)
+byte currentPreset = 0;
+
+byte presetControls[BUTTONS_NUM][PRESETS_NUM] = {
+        {80, 82, 84, 86},
+        {81, 83, 85, 87}
 };
 
+MidiButton buttons[BUTTONS_NUM] = {
+        MidiButton(BTN1_PIN, CHANNEL, DEBOUNCE_INTERVAL, LED1_PIN),
+        MidiButton(BTN2_PIN, CHANNEL, DEBOUNCE_INTERVAL, 5)
+};
+
+void nextPreset() {
+    if (currentPreset >= PRESETS_NUM - 1) currentPreset = 0;
+    else currentPreset++;
+}
+
+void prevPreset() {
+    if (currentPreset <= 0) currentPreset = PRESETS_NUM - 1;
+    currentPreset--;
+}
+
 void setup() {
-    Serial.begin(9600);
     for (auto & button : buttons) button.setup();
 }
 
 void loop() {
-    for (auto & button : buttons) button.handleClick();
+    if (buttons[0].isPressed() && buttons[1].hasButtonJustPressed()) nextPreset();
+    if (buttons[1].isPressed() && buttons[0].hasButtonJustPressed()) prevPreset();
+
+    for (int i = 0; i < BUTTONS_NUM; ++i) {
+        buttons[i].update();
+
+        if (buttons[i].hasButtonJustPressed()) buttons[i].handlePress(presetControls[i][currentPreset]);
+        if (buttons[i].hasButtonJustReleased()) buttons[i].handleRelease(presetControls[i][currentPreset]);
+    }
 }
-
-/*
-if (modeJustSwitched) {
-        if (buttons[0]._isPressed() || buttons[1].hasButtonJustReleased()) return;
-        if (buttons[1]._isPressed() || buttons[0].hasButtonJustReleased()) return;
-
-        modeJustSwitched = false;
-
-        switch (mode) {
-
-            case Switch: // Momentary -> Switch
-                buttons[0].disable();
-                break;
-            case Momentary: // Switch -> Momentary
-                buttons[0].toggle(false);
-                break;
-        }
-
-        for (auto & button : buttons) button.reset();
-    }
-
-    if (buttons[0]._isPressed() && buttons[1].hasButtonJustPressed()) {
-        modeJustSwitched = true;
-
-        switch (mode) {
-            case Switch:
-                mode = SwitchMode::Momentary;
-                break;
-            case Momentary:
-                mode = SwitchMode::Switch;
-                break;
-        }
-
-        return;
-    }
-*/
