@@ -1,7 +1,3 @@
-//
-// Created by BlakkBerry on 10/06/2022.
-//
-
 #include "Bounce2.h"
 #include "SwitchMode.h"
 
@@ -9,27 +5,30 @@ class MidiButton {
 private:
     Bounce2::Button bounce;
     byte pin;
-    byte channel;
-    byte interval;
     byte lightPin;
-    bool isSwitched = false;
-    SwitchMode switchMode = SwitchMode::Switch;
+    byte channel;
+    byte control;
+    byte interval;
+    bool isSwitched;
+    SwitchMode switchMode;
 
     unsigned long lastTimestamp;
     unsigned long currentTimestamp;
 public:
-
     MidiButton() = delete;
 
-    MidiButton(byte pin, byte channel, byte interval, byte lightPin) {
-        this->bounce = Bounce2::Button();
-        this->pin = pin;
-        this->channel = channel;
-        this->interval = interval;
-        this->lightPin = lightPin;
+    MidiButton(byte pin, byte lightPin, byte channel, byte control, byte interval)
+    : bounce(Bounce2::Button())
+    , pin(pin)
+    , lightPin(lightPin)
+    , channel(channel)
+    , control(control)
+    , interval(interval)
+    , isSwitched(false)
+    , switchMode(SwitchMode::Switch)
+    , lastTimestamp(millis())
+    {
         pinMode(lightPin, OUTPUT);
-
-        lastTimestamp = millis();
     }
 
     void setup() {
@@ -54,7 +53,7 @@ public:
         return bounce.isPressed();
     }
 
-    void toggle(byte control, bool switchLight = true) {
+    void toggle(bool switchLight = true) {
         isSwitched = !isSwitched;
 
         if (isSwitched) {
@@ -66,22 +65,22 @@ public:
         }
     }
 
-    void enable(byte control, bool enableLight = true) const {
+    void enable(bool enableLight = true) const {
         MIDI_::enableControlChange(channel, control);
         if (enableLight) digitalWrite(lightPin, HIGH);
     }
 
-    void disable(byte control, bool disableLight = true) const {
+    void disable(bool disableLight = true) const {
         MIDI_::disableControlChange(channel, control);
         if (disableLight) digitalWrite(lightPin, LOW);
     }
 
-    void resetSwitched(byte control) {
+    void resetSwitched() {
         if (isSwitched) disable(control);
         isSwitched = false;
     }
 
-    void handlePress(byte control) {
+    void handlePress() {
         switch (switchMode) {
             case Switch:
                 toggle(control);
@@ -92,14 +91,14 @@ public:
         }
     }
 
-    void handleRelease(byte control) {
+    void handleRelease() {
         currentTimestamp = millis();
 
         switch (switchMode) {
             case Switch:
                 if (currentTimestamp - lastTimestamp < 350) {
                     switchMode = Momentary;
-                    resetSwitched(control);
+                    resetSwitched();
                 }
                 break;
             case Momentary:
@@ -111,5 +110,28 @@ public:
         }
 
         lastTimestamp = currentTimestamp;
+    }
+
+    void cancel() {
+        switch (switchMode) {
+            case Switch:
+                if (isSwitched) disable(control);
+                else enable(control);
+
+                isSwitched = !isSwitched;
+
+                break;
+            case Momentary:
+                disable(control);
+                break;
+        }
+    }
+
+    void reset(bool switchLight = true) {
+        if (isSwitched) {
+            if (switchLight) digitalWrite(lightPin, HIGH);
+        } else {
+            if (switchLight) digitalWrite(lightPin, LOW);
+        }
     }
 };
