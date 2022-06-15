@@ -74,7 +74,6 @@ public:
     void handlePress() {
         switch (switchMode) {
             case Switch:
-                toggle(control);
                 break;
             case Momentary:
                 enable(control);
@@ -87,6 +86,7 @@ public:
 
         switch (switchMode) {
             case Switch:
+                toggle(control);
                 if (currentTimestamp - lastTimestamp < 350) {
                     switchMode = Momentary;
                     disable();
@@ -104,18 +104,10 @@ public:
     }
 
     void cancel() {
-        switch (switchMode) {
-            case Switch:
-                if (isSwitched) disable(control);
-                else enable(control);
-                break;
-            case Momentary:
-                disable(control);
-                break;
-        }
+        if (switchMode == SwitchMode::Momentary) disable(control);
     }
 
-    void reset(bool switchLight = true) {
+    void reset(bool switchLight = true) const {
         if (isSwitched) {
             if (switchLight) digitalWrite(lightPin, HIGH);
         } else {
