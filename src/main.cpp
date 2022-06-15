@@ -38,36 +38,26 @@ bool doPreviousPreset = false;
 
 void nextPreset() {
     if (currentPreset >= PRESETS_NUM) {
-        Serial.println("Renew Preset");
         currentPreset = 1;
         offset = 0;
     } else {
-        Serial.println("Next Preset");
         currentPreset++;
         offset += BUTTONS_NUM;
     }
 
-    Serial.println("Current preset: ");
-    Serial.println(currentPreset);
-    Serial.println("Current offset: ");
-    Serial.println(offset);
+    doNextPreset = false;
 }
 
 void prevPreset() {
     if (currentPreset <= 1) {
-        Serial.println("Overload Preset");
         currentPreset = PRESETS_NUM;
         offset = BUTTONS_NUM * (PRESETS_NUM - 1);
     } else {
-        Serial.println("Prev Preset");
         currentPreset--;
         offset -= BUTTONS_NUM;
     }
 
-    Serial.println("Current preset: ");
-    Serial.println(currentPreset);
-    Serial.println("Current offset: ");
-    Serial.println(offset);
+    doPreviousPreset = false;
 }
 
 void setup() {
@@ -87,8 +77,7 @@ void loop() {
             buttons[offset].cancel();
 
             nextPreset();
-            for (auto & button : buttons) button.reset();
-            doNextPreset = false;
+            for (int i = offset; i < BUTTONS_NUM * currentPreset; ++i) buttons[i].reset();
         }
         return;
     } else if (doPreviousPreset) {
@@ -96,8 +85,7 @@ void loop() {
             buttons[offset + 1].cancel();
 
             prevPreset();
-            for (auto & button : buttons) button.reset();
-            doPreviousPreset = false;
+            for (int i = offset; i < BUTTONS_NUM * currentPreset; ++i) buttons[i].reset();
         }
         return;
     }

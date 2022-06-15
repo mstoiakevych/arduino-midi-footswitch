@@ -56,28 +56,19 @@ public:
     void toggle(bool switchLight = true) {
         isSwitched = !isSwitched;
 
-        if (isSwitched) {
-            MIDI_::enableControlChange(channel, control);
-            if (switchLight) digitalWrite(lightPin, HIGH);
-        } else {
-            MIDI_::disableControlChange(channel, control);
-            if (switchLight) digitalWrite(lightPin, LOW);
-        }
+        if (isSwitched) enable(switchLight); else disable(switchLight);
     }
 
-    void enable(bool enableLight = true) const {
+    void enable(bool enableLight = true) {
+        isSwitched = true;
         MIDI_::enableControlChange(channel, control);
         if (enableLight) digitalWrite(lightPin, HIGH);
     }
 
-    void disable(bool disableLight = true) const {
+    void disable(bool disableLight = true) {
+        isSwitched = false;
         MIDI_::disableControlChange(channel, control);
         if (disableLight) digitalWrite(lightPin, LOW);
-    }
-
-    void resetSwitched() {
-        if (isSwitched) disable(control);
-        isSwitched = false;
     }
 
     void handlePress() {
@@ -98,11 +89,11 @@ public:
             case Switch:
                 if (currentTimestamp - lastTimestamp < 350) {
                     switchMode = Momentary;
-                    resetSwitched();
+                    disable();
                 }
                 break;
             case Momentary:
-                disable(control);
+                disable();
                 if (currentTimestamp - lastTimestamp < 350) {
                     switchMode = Switch;
                 }
@@ -117,9 +108,6 @@ public:
             case Switch:
                 if (isSwitched) disable(control);
                 else enable(control);
-
-                isSwitched = !isSwitched;
-
                 break;
             case Momentary:
                 disable(control);
