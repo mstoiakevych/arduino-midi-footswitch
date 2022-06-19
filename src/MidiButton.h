@@ -1,9 +1,11 @@
 #include "Bounce2.h"
 #include "SwitchMode.h"
+#include "LcdScreen.h"
 
 class MidiButton {
 private:
     Bounce2::Button bounce;
+    byte buttonNum;
     byte pin;
     byte lightPin;
     byte channel;
@@ -11,14 +13,16 @@ private:
     byte interval;
     bool isSwitched;
     SwitchMode switchMode;
+    LcdScreen& screen;
 
     unsigned long lastTimestamp;
     unsigned long currentTimestamp;
 public:
     MidiButton() = delete;
 
-    MidiButton(byte pin, byte lightPin, byte channel, byte control, byte interval)
+    MidiButton(byte buttonNum, byte pin, byte lightPin, byte channel, byte control, byte interval, LcdScreen& screen)
     : bounce(Bounce2::Button())
+    , buttonNum(buttonNum)
     , pin(pin)
     , lightPin(lightPin)
     , channel(channel)
@@ -26,6 +30,7 @@ public:
     , interval(interval)
     , isSwitched(false)
     , switchMode(SwitchMode::Switch)
+    , screen(screen)
     , lastTimestamp(millis())
     {
         pinMode(lightPin, OUTPUT);
@@ -77,6 +82,7 @@ public:
                 break;
             case Momentary:
                 enable(control);
+                screen.setButtonState(buttonNum, switchMode, isSwitched);
                 break;
         }
     }
@@ -87,15 +93,20 @@ public:
         switch (switchMode) {
             case Switch:
                 toggle(control);
+                screen.setButtonState(buttonNum, switchMode, isSwitched);
+
                 if (currentTimestamp - lastTimestamp < 350) {
                     switchMode = Momentary;
                     disable();
+                    screen.setButtonState(buttonNum, switchMode, false);
+                    break;
                 }
                 break;
             case Momentary:
                 disable();
                 if (currentTimestamp - lastTimestamp < 350) {
                     switchMode = Switch;
+                    screen.setButtonState(buttonNum, switchMode, isSwitched);
                 }
                 break;
         }
@@ -113,5 +124,7 @@ public:
         } else {
             if (switchLight) digitalWrite(lightPin, LOW);
         }
+
+        screen.setButtonState(buttonNum, switchMode, isSwitched);
     }
 };

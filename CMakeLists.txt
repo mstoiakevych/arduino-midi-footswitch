@@ -30,4 +30,4 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_executable(PlatformIO Upload ${SRC_LIST} src/MidiButton.h src/SwitchMode.h)
+add_executable(PlatformIO Upload ${SRC_LIST} src/MidiButton.h src/SwitchMode.h src/LcdScreen.h src/LcdMidiSymbols.h)
